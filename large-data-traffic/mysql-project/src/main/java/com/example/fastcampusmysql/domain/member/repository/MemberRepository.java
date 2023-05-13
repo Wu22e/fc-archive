@@ -19,7 +19,15 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Repository
 public class MemberRepository {
-    private static final String TABLE = "member";
+    static final RowMapper<Member> rowMapper = (ResultSet resultSet, int rowNum) -> Member
+            .builder()
+            .id(resultSet.getLong("id"))
+            .email(resultSet.getString("email"))
+            .nickname(resultSet.getString("nickname"))
+            .birthday(resultSet.getObject("birthday", LocalDate.class))
+            .createdAt(resultSet.getObject("createdAt", LocalDateTime.class))
+            .build();
+    private static final String TABLE = "Member";
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
@@ -32,14 +40,6 @@ public class MemberRepository {
         var sql = String.format("SELECT * FROM %s WHERE id = :id", TABLE);
         var param = new MapSqlParameterSource()
                 .addValue("id", id);
-        RowMapper<Member> rowMapper = (ResultSet resultSet, int rowNum) -> Member
-                .builder()
-                .id(resultSet.getLong("id"))
-                .email(resultSet.getString("email"))
-                .nickname(resultSet.getString("nickname"))
-                .birthday(resultSet.getObject("birthday", LocalDate.class))
-                .createdAt(resultSet.getObject("createdAt", LocalDateTime.class))
-                .build();
 
         var member = namedParameterJdbcTemplate.queryForObject(sql, param, rowMapper);
         return Optional.ofNullable(member);
@@ -61,7 +61,7 @@ public class MemberRepository {
         // NameParameterJdbcTemplate 에, KeyHolder 를 이용하면 key 를 받아올 수 있음.
         // 하지만 코드가 지저분해지고 실수의 여지가 많아져서 SimpleJdbcInsert 를 사용해본다.
         SimpleJdbcInsert simpleJdbcInsert = new SimpleJdbcInsert(namedParameterJdbcTemplate.getJdbcTemplate())
-                .withTableName("Member")
+                .withTableName(TABLE)
                 .usingGeneratedKeyColumns("id"); // key 를 어떤 칼럼으로 가져올 지 명시해줄 수 있음.
 
         // bean 으로 SqlParameterSource 를 만들어 준다.
@@ -79,7 +79,9 @@ public class MemberRepository {
     }
 
     private Member update(Member member) {
-        // TODO: implemented
+        var sql = String.format("UPDATE %s set email = :email, nickname = :nickname, birthday = :birthday WHERE id = :id", TABLE);
+        SqlParameterSource params = new BeanPropertySqlParameterSource(member);
+        namedParameterJdbcTemplate.update(sql, params);
         return member;
     }
 
