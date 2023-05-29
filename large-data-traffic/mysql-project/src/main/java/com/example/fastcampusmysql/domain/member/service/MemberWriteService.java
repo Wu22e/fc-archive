@@ -57,6 +57,7 @@ public class MemberWriteService {
                 .memberId(member.getId())
                 .nickname(member.getNickname())
                 .build();
+
         memberNicknameHistoryRepository.save(history);
     }
 }
